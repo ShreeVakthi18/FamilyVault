@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FamilyVault — Family Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f2f2f7; min-height: 100vh; }
+  .header { background: #fff; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 0.5px solid #e0e0e0; position: sticky; top: 0; z-index: 10; }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .logo-text { font-size: 18px; font-weight: 700; color: #1a1a2e; }
+  .logo-sub  { font-size: 11px; color: #888; }
+  .status-pill { font-size: 12px; padding: 6px 14px; border-radius: 20px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .status-live  { background: #e8f5e9; color: #2e7d32; }
+  .status-alert { background: #fce4ec; color: #c62828; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+  .dot-live  { width: 8px; height: 8px; border-radius: 50%; background: #4caf50; }
+  .dot-alert { width: 8px; height: 8px; border-radius: 50%; background: #f44336; }
+  .main { max-width: 480px; margin: 0 auto; padding: 24px 16px; }
+  .person-card { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .person-avatar { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #f093fb, #f5576c); display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0; }
+  .person-info h3 { font-size: 17px; font-weight: 600; color: #1a1a2e; }
+  .person-info p  { font-size: 13px; color: #888; margin-top: 2px; }
+  .section-title { font-size: 13px; font-weight: 600; color: #888; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 12px; padding: 0 4px; }
+  .alert-card { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 20px; display: none; border: 2px solid #f44336; animation: slideIn 0.4s ease; }
+  @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .alert-card.visible { display: block; }
+  .alert-header { background: #f44336; padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
+  .alert-header h3 { font-size: 16px; font-weight: 700; color: #fff; }
+  .alert-header p  { font-size: 12px; color: rgba(255,255,255,0.85); margin-top: 2px; }
+  .alert-body { padding: 20px; }
+  .alert-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 0.5px solid #f0f0f0; }
+  .alert-row:last-of-type { border-bottom: none; }
+  .alert-row-label { font-size: 13px; color: #888; }
+  .alert-row-value { font-size: 14px; font-weight: 600; color: #1a1a2e; text-align: right; }
+  .alert-row-value.danger { color: #f44336; }
+  .gemini-box { background: #f8f4ff; border: 1px solid #e8d5ff; border-radius: 12px; padding: 14px 16px; margin: 16px 0; display: flex; gap: 10px; align-items: flex-start; }
+  .gemini-label { font-size: 11px; color: #9c6bbb; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
+  .gemini-text  { font-size: 13px; color: #4a0080; line-height: 1.5; }
+  .risk-bar  { background: #f0f0f0; border-radius: 8px; height: 8px; margin: 8px 0 4px; overflow: hidden; }
+  .risk-fill { height: 100%; border-radius: 8px; background: linear-gradient(90deg, #ff9800, #f44336); transition: width 1s ease; }
+  .timer-box { background: #fff3e0; border-radius: 10px; padding: 12px 16px; margin: 12px 0; text-align: center; font-size: 13px; color: #e65100; font-weight: 600; }
+  #countdown { font-size: 22px; font-weight: 700; color: #f44336; }
+  .action-buttons { display: flex; gap: 12px; margin-top: 20px; }
+  .btn-action { flex: 1; padding: 16px; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; transition: transform 0.1s; }
+  .btn-action:active { transform: scale(0.97); }
+  .btn-cancel { background: #f44336; color: #fff; }
+  .btn-allow  { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+  .safe-banner { background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 16px; padding: 24px 20px; text-align: center; margin-bottom: 20px; display: none; }
+  .safe-banner.visible { display: block; }
+  .safe-banner h3 { font-size: 20px; font-weight: 700; color: #2e7d32; margin-bottom: 6px; }
+  .safe-banner p  { font-size: 14px; color: #555; }
+  .monitor-card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 20px; text-align: center; }
+  .monitor-icon { font-size: 40px; margin-bottom: 12px; }
+  .monitor-text { font-size: 14px; color: #888; line-height: 1.6; }
+  .monitor-text strong { color: #1a1a2e; }
+  .log-card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 20px; }
+  .log-entry { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-bottom: 0.5px solid #f5f5f5; font-size: 13px; }
+  .log-entry:last-child { border-bottom: none; }
+  .log-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+  .log-dot-safe { background: #4caf50; }
+  .log-dot-hold { background: #f44336; }
+  .log-dot-info { background: #2196f3; }
+  .log-time { color: #aaa; font-size: 12px; }
+  .conn-status { font-size: 11px; text-align: center; padding: 6px; color: #888; }
+  .conn-ok  { color: #2e7d32; }
+  .conn-err { color: #f44336; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">🛡️</div>
+    <div>
+      <div class="logo-text">FamilyVault</div>
+      <div class="logo-sub">Son's Dashboard — Arun, Bangalore</div>
+    </div>
+  </div>
+  <div class="status-pill status-live" id="status-pill">
+    <div class="dot-live" id="status-dot"></div>
+    <span id="status-text">Monitoring</span>
+  </div>
+</div>
+
+<div class="main">
+
+  <div id="conn-status" class="conn-status">Connecting to Firebase...</div>
+
+  <div class="section-title">Protected Member</div>
+  <div class="person-card">
+    <div class="person-avatar">👩</div>
+    <div class="person-info">
+      <h3>Meenakshi Amma</h3>
+      <p>Chennai • Protected by FamilyVault</p>
+    </div>
+    <div style="margin-left:auto;font-size:24px;">🛡️</div>
+  </div>
+
+  <!-- Alert card -->
+  <div class="alert-card" id="alert-card">
+    <div class="alert-header">
+      <div style="font-size:24px;">🚨</div>
+      <div>
+        <h3>Fraud Pattern Detected</h3>
+        <p>Immediate action required</p>
+      </div>
+    </div>
+    <div class="alert-body">
+      <div class="alert-row">
+        <span class="alert-row-label">Call duration</span>
+        <span class="alert-row-value danger" id="r-duration">—</span>
+      </div>
+      <div class="alert-row">
+        <span class="alert-row-label">Caller</span>
+        <span class="alert-row-value danger">Unknown number ⚠️</span>
+      </div>
+      <div class="alert-row">
+        <span class="alert-row-label">App opened after call</span>
+        <span class="alert-row-value danger" id="r-app">—</span>
+      </div>
+      <div class="alert-row">
+        <span class="alert-row-label">Time after call ended</span>
+        <span class="alert-row-value danger" id="r-time">—</span>
+      </div>
+      <div class="alert-row">
+        <span class="alert-row-label">Transaction amount</span>
+        <span class="alert-row-value danger">₹5,000</span>
+      </div>
+
+      <div class="gemini-box">
+        <div style="font-size:18px;flex-shrink:0;margin-top:1px;">✨</div>
+        <div style="width:100%;">
+          <div class="gemini-label">Gemini AI Assessment</div>
+          <div class="gemini-text" id="gemini-reason">Analyzing...</div>
+          <div style="margin-top:10px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:#9c6bbb;">
+              <span>Fraud Risk Score</span>
+              <span id="risk-pct">—</span>
+            </div>
+            <div class="risk-bar">
+              <div class="risk-fill" id="risk-fill" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="timer-box">
+        Transaction held for: <span id="countdown">3:00</span>
+        <div style="font-size:11px;font-weight:400;margin-top:4px;color:#888;">
+          Amma's PhonePe is waiting for your response
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button class="btn-action btn-cancel" onclick="respondAction('cancel')">
+          🚫 Cancel Transaction
+        </button>
+        <button class="btn-action btn-allow" onclick="respondAction('allow')">
+          ✓ This is safe
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Safe banner -->
+  <div class="safe-banner" id="safe-banner">
+    <div style="font-size:48px;margin-bottom:12px;">✅</div>
+    <h3>Transaction Cancelled</h3>
+    <p>Amma's ₹5,000 is safe.<br>The fraudster received nothing.</p>
+  </div>
+
+  <!-- Monitoring state -->
+  <div class="monitor-card" id="monitor-card">
+    <div class="monitor-icon">👁️</div>
+    <div class="monitor-text">
+      <strong>FamilyVault is monitoring silently.</strong><br><br>
+      You will be alerted the moment a suspicious pattern is detected —
+      long call from unknown number followed by UPI app activity.
+    </div>
+  </div>
+
+  <div class="section-title">Activity Log</div>
+  <div class="log-card">
+    <div class="log-entry">
+      <div class="log-dot log-dot-info"></div>
+      <div>
+        <div>FamilyVault activated on Amma's phone</div>
+        <div class="log-time">Today, 8:00 AM</div>
+      </div>
+    </div>
+    <div class="log-entry">
+      <div class="log-dot log-dot-safe"></div>
+      <div>
+        <div>Normal call from saved contact — 4 min. No action.</div>
+        <div class="log-time">Today, 9:12 AM</div>
+      </div>
+    </div>
+    <div id="live-log"></div>
+  </div>
+
+</div>
+
+<script type="module">
+  import { initializeApp }          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, onSnapshot, doc, updateDoc, enableNetwork }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyAC0dMP6A53N19Dy0b1FetmGy8oJzkxtW8",
+    authDomain:        "familyvault-demo.firebaseapp.com",
+    projectId:         "familyvault-demo",
+    storageBucket:     "familyvault-demo.firebasestorage.app",
+    messagingSenderId: "886995128972",
+    appId:             "1:886995128972:web:2130c006d3c2abb65921a9"
+  };
+
+  const fbApp = initializeApp(firebaseConfig);
+  const db    = getFirestore(fbApp);
+
+  // Force reconnect
+  enableNetwork(db).then(() => {
+    document.getElementById("conn-status").textContent = "✅ Connected to Firebase";
+    document.getElementById("conn-status").className = "conn-status conn-ok";
+  }).catch(() => {
+    document.getElementById("conn-status").textContent = "❌ Firebase connection failed — check internet";
+    document.getElementById("conn-status").className = "conn-status conn-err";
+  });
+
+  let countdownInterval = null;
+  let currentDocId      = null;
+  const shown           = new Set();
+
+  const startTime = new Date();
+
+  onSnapshot(collection(db, "alerts"), (snap) => {
+    document.getElementById("conn-status").textContent = "✅ Connected — Listening for alerts";
+    document.getElementById("conn-status").className = "conn-status conn-ok";
+
+    snap.docChanges().forEach(change => {
+      if (change.type === "added") {
+        const d  = change.doc.data();
+        const id = change.doc.id;
+        if (shown.has(id)) return;
+        shown.add(id);
+
+        // Only show alerts created AFTER this page loaded
+        const alertTime = d.timestamp ? new Date(d.timestamp) : new Date(0);
+        const ageSeconds = (new Date() - alertTime) / 1000;
+        if (ageSeconds > 30) return; // ignore old alerts
+
+        if (d.decision === "HOLD" && d.status === "pending") {
+          currentDocId = id;
+          showAlert(d);
+        }
+      }
+      if (change.type === "modified") {
+        const d = change.doc.data();
+        if (d.status === "cancel") showSafe();
+      }
+    });
+  }, (error) => {
+    document.getElementById("conn-status").textContent = "❌ Firestore error: " + error.message;
+    document.getElementById("conn-status").className = "conn-status conn-err";
+  });
+
+  function showAlert(data) {
+    document.getElementById("monitor-card").style.display = "none";
+    document.getElementById("r-duration").textContent = (data.call_duration || 11) + " minutes";
+    document.getElementById("r-app").textContent      = data.app_opened || "PhonePe";
+    document.getElementById("r-time").textContent     = (data.minutes_since_call || 3) + " minutes";
+    document.getElementById("gemini-reason").textContent = data.reason || "High fraud risk detected.";
+
+    const score = data.risk_score || 85;
+    document.getElementById("risk-pct").textContent = score + "%";
+    setTimeout(() => {
+      document.getElementById("risk-fill").style.width = score + "%";
+    }, 300);
+
+    document.getElementById("alert-card").classList.add("visible");
+
+    const pill = document.getElementById("status-pill");
+    pill.className = "status-pill status-alert";
+    document.getElementById("status-dot").className = "dot-alert";
+    document.getElementById("status-text").textContent = "ALERT";
+
+    addLog("hold", "Fraud pattern detected — PhonePe opened after 11-min unknown call");
+
+    let secs = 180;
+    countdownInterval = setInterval(() => {
+      secs--;
+      const m = Math.floor(secs / 60);
+      const s = secs % 60;
+      document.getElementById("countdown").textContent =
+        m + ":" + String(s).padStart(2, "0");
+      if (secs <= 0) clearInterval(countdownInterval);
+    }, 1000);
+  }
+
+  window.respondAction = async function(action) {
+    clearInterval(countdownInterval);
+    if (currentDocId) {
+      await updateDoc(doc(db, "alerts", currentDocId), {
+        status: action,
+        resolved_at: new Date().toISOString()
+      });
+    }
+    if (action === "cancel") {
+      showSafe();
+    } else {
+      document.getElementById("alert-card").classList.remove("visible");
+      document.getElementById("monitor-card").style.display = "block";
+      addLog("safe", "Transaction allowed by family member");
+      resetStatus();
+    }
+  };
+
+  function showSafe() {
+    document.getElementById("alert-card").classList.remove("visible");
+    document.getElementById("safe-banner").classList.add("visible");
+    document.getElementById("monitor-card").style.display = "none";
+    addLog("safe", "Transaction cancelled — Amma's ₹5,000 protected ✓");
+    resetStatus();
+  }
+
+  function addLog(type, msg) {
+    const time = new Date().toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" });
+    const div  = document.createElement("div");
+    div.className = "log-entry";
+    div.innerHTML = `
+      <div class="log-dot log-dot-${type === "safe" ? "safe" : type === "hold" ? "hold" : "info"}"></div>
+      <div>
+        <div>${msg}</div>
+        <div class="log-time">Today, ${time}</div>
+      </div>`;
+    document.getElementById("live-log").prepend(div);
+  }
+
+  function resetStatus() {
+    document.getElementById("status-pill").className = "status-pill status-live";
+    document.getElementById("status-dot").className  = "dot-live";
+    document.getElementById("status-text").textContent = "Monitoring";
+  }
+
+  window.demoTrigger = function() {
+    showAlert({
+      call_duration: 11, minutes_since_call: 3,
+      app_opened: "PhonePe",
+      reason: "Unknown caller followed immediately by UPI activity — classic elder fraud pattern.",
+      risk_score: 88, decision: "HOLD"
+    });
+  };
+</script>
+</body>
+</html>
